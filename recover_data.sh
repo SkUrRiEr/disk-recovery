@@ -73,7 +73,7 @@ cat $2 | while IFS="|" read inode alloc uid gid mtime atime ctime crtime mode nl
 
 	FILENAME="./$(ffind -f ntfs -i raw $1 $inode | iconv -t "ASCII//TRANSLIT" -)"
 
-	if [ "$FILENAME" = "File name not found for inode" ]; then
+	if [ "$FILENAME" = "./File name not found for inode" -o "$FILENAME" = "./" ] ; then
 		echo "Inode #" $inode "does not have a filename."
 		continue;
 	fi
