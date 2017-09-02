@@ -15,7 +15,8 @@ This recovers files and directories, i.e. the full file and directory structure
 from any fileystem image SleuthKit can read into the current directory.
 
 Files which are not recoverable are output into "failed.log" in the current
-directory.
+directory. Inodes which cannot be copied or lack filenames are saved to
+"failed.inodes" in the current directory.
 
 Note that this is hardcoded to expect RAW images. i.e. byte-for-byte disk
 images or disks themselves.
@@ -75,6 +76,9 @@ cat $2 | while IFS="|" read inode alloc uid gid mtime atime ctime crtime mode nl
 
 	if [ "$FILENAME" = "./File name not found for inode" -o "$FILENAME" = "./" ] ; then
 		echo "Inode #" $inode "does not have a filename."
+
+		echo $inode"|"$alloc"|"$uid"|"$gid"|"$mtime"|"$atime"|"$ctime"|"$crtime"|"$mode"|"$nlink"|"$size >> failed.inodes
+
 		continue;
 	fi
 
@@ -91,7 +95,11 @@ cat $2 | while IFS="|" read inode alloc uid gid mtime atime ctime crtime mode nl
 
 	if ! [ -e "$FILENAME" ]; then
 		(
-			icat -f ntfs -h -r -i raw $1 $inode || (rm -f "$FILENAME"; echo "$FILENAME" >> failed.log)
+			icat -f ntfs -h -r -i raw $1 $inode || (
+				rm -f "$FILENAME"
+				echo "$FILENAME" >> failed.log
+				echo $inode"|"$alloc"|"$uid"|"$gid"|"$mtime"|"$atime"|"$ctime"|"$crtime"|"$mode"|"$nlink"|"$size >> failed.inodes
+			)
 		) | pv -s $size > "$FILENAME"
 	fi
 done
