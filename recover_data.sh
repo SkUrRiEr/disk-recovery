@@ -14,6 +14,9 @@ ils_file - output from ils
 This recovers files and directories, i.e. the full file and directory structure
 from any fileystem image SleuthKit can read into the current directory.
 
+Files which are not recoverable are output into "failed.log" in the current
+directory.
+
 Note that this is hardcoded to expect RAW images. i.e. byte-for-byte disk
 images or disks themselves.
 
