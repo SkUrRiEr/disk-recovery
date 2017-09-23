@@ -3,13 +3,13 @@
 usage () {
 	echo $1
 	echo
-	echo $0 "<image> <ils_file>"
+	echo $0 "<image> <ils_file> [<ils_file> ...]"
 	echo
 	cat <<EOF
 Recovers files and directories from a disk or disk image SleuthKit can read.
 
 image    - path to a raw disk image, or a block device
-ils_file - output from ils
+ils_file - output from ils - mutiple files can be spcified
 
 This recovers files and directories, i.e. the full file and directory structure
 from any fileystem image SleuthKit can read into the current directory.
@@ -28,6 +28,8 @@ this script assumes that in the case of some directory like /a/b/c, inodes will
 either appear in the order a, b, c; or c will appear before a.
 
 Special inodes, e.g. NTFS filesystem structures, will also be recovered.
+
+Multiple ils files can be specified and all will be used to recover data.
 
 Filenames are transliterated to ASCII, so international characters may be lost.
 
@@ -51,55 +53,63 @@ if ! [ -e "$1" ]; then
 	usage "First parameter must be a disk image or block device";
 fi
 
-if ! [ -f "$2" ]; then
-	usage "Second parameter must be a file";
-fi
+DISK="$1"
 
-cat $2 | while IFS="|" read inode alloc uid gid mtime atime ctime crtime mode nlink size; do
-	case $inode in
-		class|ils|st_ino)
+while [ $# -gt 2 ]; do
+	echo "Recovering inodes listed in $2 ..."
+
+	if ! [ -f "$2" ]; then
+		usage "Second parameter must be a file";
+	fi
+
+	cat $2 | while IFS="|" read inode alloc uid gid mtime atime ctime crtime mode nlink size; do
+		case $inode in
+			class|ils|st_ino)
+				continue;
+				;;
+		esac
+
+		if [ $size -eq 0 ]; then
+			echo "Skipping inode #" $inode "as it's empty"
 			continue;
-			;;
-	esac
+		fi
 
-	if [ $size -eq 0 ]; then
-		echo "Skipping inode #" $inode "as it's empty"
-		continue;
-	fi
+		if [ $alloc = "f" ]; then
+			echo "Skipping inode #" $inode "as it's not allocated"
+			continue;
+		fi
 
-	if [ $alloc = "f" ]; then
-		echo "Skipping inode #" $inode "as it's not allocated"
-		continue;
-	fi
+		FILENAME="./$(ffind -f ntfs -i raw "$DISK" $inode | iconv -t "ASCII//TRANSLIT" -)"
 
-	FILENAME="./$(ffind -f ntfs -i raw $1 $inode | iconv -t "ASCII//TRANSLIT" -)"
+		if [ "$FILENAME" = "./File name not found for inode" -o "$FILENAME" = "./" ] ; then
+			echo "Inode #" $inode "does not have a filename."
 
-	if [ "$FILENAME" = "./File name not found for inode" -o "$FILENAME" = "./" ] ; then
-		echo "Inode #" $inode "does not have a filename."
+			echo $inode"|"$alloc"|"$uid"|"$gid"|"$mtime"|"$atime"|"$ctime"|"$crtime"|"$mode"|"$nlink"|"$size >> failed.inodes
 
-		echo $inode"|"$alloc"|"$uid"|"$gid"|"$mtime"|"$atime"|"$ctime"|"$crtime"|"$mode"|"$nlink"|"$size >> failed.inodes
+			continue;
+		fi
 
-		continue;
-	fi
+		echo "Inode #" $inode "is at" $FILENAME;
 
-	echo "Inode #" $inode "is at" $FILENAME;
+		DIR=$(dirname "$FILENAME")
 
-	DIR=$(dirname "$FILENAME")
+		if [ -f "$DIR" ]; then
+			echo "$DIR is also a directory, fixing."
+			mv "$DIR" "$DIR.dirdata"
+		fi
 
-	if [ -f "$DIR" ]; then
-		echo "$DIR is also a directory, fixing."
-		mv "$DIR" "$DIR.dirdata"
-	fi
+		mkdir -p "$DIR"
 
-	mkdir -p "$DIR"
+		if ! [ -e "$FILENAME" ]; then
+			(
+				icat -f ntfs -h -r -i raw "$DISK" $inode || (
+					rm -f "$FILENAME"
+					echo "$FILENAME" >> failed.log
+					echo $inode"|"$alloc"|"$uid"|"$gid"|"$mtime"|"$atime"|"$ctime"|"$crtime"|"$mode"|"$nlink"|"$size >> failed.inodes
+				)
+			) | pv -s $size > "$FILENAME"
+		fi
+	done
 
-	if ! [ -e "$FILENAME" ]; then
-		(
-			icat -f ntfs -h -r -i raw $1 $inode || (
-				rm -f "$FILENAME"
-				echo "$FILENAME" >> failed.log
-				echo $inode"|"$alloc"|"$uid"|"$gid"|"$mtime"|"$atime"|"$ctime"|"$crtime"|"$mode"|"$nlink"|"$size >> failed.inodes
-			)
-		) | pv -s $size > "$FILENAME"
-	fi
+	shift 1;
 done
