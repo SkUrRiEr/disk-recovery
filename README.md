@@ -6,15 +6,17 @@ Horrifically simple NTFS disk recovery using SleuthKit
 
 ***DO NOT USE THIS IF YOU ARE IN ANY WAY UNSURE OF WHAT YOU'RE DOING.***
 
-***THIS HAS ALMOST NO ERROR HANDLING AND MAY BLINDLY OVERWRITE EXISTING FILES.***
+***THESE SCRIPTS SHOULD ONLY BE USED AS A LAST RESORT WHEN ALL OTHER DISK RECOVERY OPTIONS HAVE FAILED.***
+
+***THESE SCRIPTS HAVE ALMOST NO ERROR HANDLING AND MAY BLINDLY OVERWRITE EXISTING FILES.***
 
 ***READING FROM DISKS WITH DATA LOSS DUE TO BAD SPOTS MAY CAUSE FURTHER DAMAGE.***
 
 ***IT IS STRONGLY RECOMMENDED THAT YOU RUN THIS WITH DISK IMAGES, NOT DIRECTLY OFF A DAMAGED DISK.***
 
-***THESE SCRIPTS CAN BE USED IN WAYS WHICH ARE HORRIFICALLY UNSAFE FOR PERFORMING REAL DISK RECOVERY.***
+***THESE SCRIPTS CAN BE USED IN WAYS WHICH ARE HORRIFICALLY UNSAFE FOR PERFORMING DISK RECOVERY USING OTHER MEANS.***
 
-***YOU ARE ON YOUR OWN, THIS SHOULD ONLY BE USED AS A LAST RESORT WHEN ALL OTHER DISK RECOVERY OPTIONS HAVE FAILED.***
+***YOU ARE ON YOUR OWN***
 
 ## Assumptions
 
@@ -24,7 +26,9 @@ Horrifically simple NTFS disk recovery using SleuthKit
 4. You are prepared to not recover everything.
 5. You are running the recovery scripts on a Linux machine.
 
-(<sup>1</sup>) Yes, you can recover directly from failed but readable disks, however this is ***NOT RECOMMENDED***. See above.
+<sup>1</sup> Yes, you can recover directly from failed but readable disks, however this is ***NOT RECOMMENDED***. See above.
+
+***Note:*** Despite my dire warnings to the contrary, this has only ever been used on real disks, so it is expected that the SleuthKit tools will fail with errors as opposed to not finding the data they were looking for. It's likely that running this on a disk image will not work exactly as described.
 
 ## Prerequisites
 
@@ -32,7 +36,7 @@ Horrifically simple NTFS disk recovery using SleuthKit
  - Pipe Viewer ("pv") from http://www.ivarch.com/programs/pv.shtml
  - `iconv` which should be installed by default.
 
-Both of these should be packaged for your Linux distribution.
+The first two should be packaged for your Linux distribution. `iconv` should already be available.
 
 These scripts probably work on BSDs and MacOS X, however this has never been attempted.
 
@@ -52,7 +56,7 @@ It's left to the reader to determine the best way to do this for their particula
 
 ### Building a list of inodes
 
-As I understand it, for the purposes of this discussion, and as a lie you can understand, NTFS's Master File Table is something in between a list of addresses of inods and a binary tree.
+As I understand it, for the purposes of this discussion, and as a lie you can understand, NTFS's Master File Table is something in between a list of addresses of inodes and a binary tree.
 
 This means that for a disk with damage to the MFT or inodes themselves it's possible that you can recover non-contiguous ranges of inodes.
 
@@ -68,7 +72,7 @@ Therefore the `build_inode_list.sh` script takes a range (or 0 to a maximum) of 
 
 If `<start>` is omitted, `0` is used instead.
 
-`<end>` should be at least 20% higher than the number of files you expect to recover as inodes include system data structures and directories.
+`<end>` should be at least 20% higher than the number of files you expect to recover as inodes include system data structures, directories and deleted files. This number should be high enough that `ils` will complain that it's an invalid inode number.
 
 #### Mechanism
 
