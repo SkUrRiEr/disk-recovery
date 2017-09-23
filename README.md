@@ -60,11 +60,11 @@ As I understand it, for the purposes of this discussion, and as a lie you can un
 
 This means that for a disk with damage to the MFT or inodes themselves it's possible that you can recover non-contiguous ranges of inodes.
 
-Therefore the `build_inode_list.sh` script takes a range (or 0 to a maximum) of inodes to try to get data for, then produces files containing contiguous sets of inode data.
+Therefore the `build_inode_lists.sh` script takes a range (or 0 to a maximum) of inodes to try to get data for, then produces files containing contiguous sets of inode data.
 
 #### Commandline Options
 
-`build_inode_list.sh <disk_image> [<start>] <end>`
+`build_inode_lists.sh <disk_image> [<start>] <end>`
 
  - `<disk_image>` a disk image.
  - `<start>` an optional starting inode

@@ -38,5 +38,3 @@ while [ $i -lt $END ]; do
 			;;
 	esac
 done
-
-# Combine inodes_*.list files
